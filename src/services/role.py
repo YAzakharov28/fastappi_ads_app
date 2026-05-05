@@ -72,3 +72,16 @@ class RoleService:
         role_db = await self.session.scalar(stmt)
         return role_db
 
+    async def is_admin(self, user: UserModel) -> bool:
+        stmt = (
+            select(func.count())
+            .select_from(UserModel)
+            .join(user_role_relation, UserModel.id == user_role_relation.c.user_id)
+            .join(RoleModel, user_role_relation.c.role_id == RoleModel.id)
+            .where(
+                UserModel.id == user.id,
+                RoleModel.name == "admin",
+            )
+        )
+        count = await self.session.scalar(stmt)
+        return count > 0

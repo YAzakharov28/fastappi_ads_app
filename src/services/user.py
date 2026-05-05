@@ -3,12 +3,11 @@ from typing import Literal
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.util import await_only
 
+from src.core import security
 from src.models import User as UserModel
 from src.repositories.user import UserRepository
 from src.schemas.user import UserRegistrationRequest, UserUpdateRequest
-from src.core import security
 from src.services.role import RoleService
 
 
@@ -45,15 +44,49 @@ class UserService:
                     detail="Username already exists",
                 )
 
-    async def update_user(self, user: UserModel, user_data: UserUpdateRequest) -> None:
+    async def update_user(
+        self,
+        current_user: UserModel,
+        user_for_update: UserModel,
+        user_data: UserUpdateRequest,
+    ) -> None:
+        if user_data.role == "admin":
+            # Проверяем, что мы не пытаемся себя повысить до админа
+            if user_for_update.id == current_user.id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="Cannot self‑assign admin role",
+                )
+            # Проверяем, что запрос сделан админом
+            if not await self.role_serv.is_admin(current_user):
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail="Only admin can assign admin role",
+                )
+
+        can_update = await self.role_serv.check_object_access(
+            user=current_user,
+            orm_object=UserModel,
+            need_write=True,
+        )
+        if not can_update:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden"
+            )
+
         password = user_data.password
         if password is not None:
-            user_data.password = security.hash_password(password)
-        update_data = user_data.model_dump(exclude_unset=True, exclude_none=True)
-        for field, value in update_data.items():
-            setattr(user, field, value)
+            user_for_update.hashed_password = security.hash_password(password)
+
+        if user_data.username:
+            user_for_update.username = user_data.username
+
+        if user_data.role:
+            role = await self.role_serv.get_role_by_name(user_data.role)
+            user_for_update.roles = [role]
+
         await self.session.commit()
-        await self.session.refresh(user)
+        await self.session.refresh(user_for_update)
 
     async def delete_user(self, user: UserModel) -> None:
         await self.session.delete(user)

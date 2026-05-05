@@ -44,10 +44,11 @@ async def user_registration(
 async def update_user(
     user_serv: UserServ,
     user_data: UserUpdateRequest,
-    user: UserModel = Depends(get_user_write_access),
+    user_for_update: UserModel = Depends(get_user_from_query_param),
+    current_user: UserModel = Depends(get_current_user),
 ):
-    await user_serv.update_user(user, user_data)
-    return user
+    await user_serv.update_user(current_user, user_for_update, user_data)
+    return user_for_update
 
 
 @router.delete(

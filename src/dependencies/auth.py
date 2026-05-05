@@ -64,12 +64,12 @@ async def get_user_write_access(
     current_user: UserModel = Depends(get_current_user),
     role_serv: RoleService = Depends(get_role_service),
 ) -> UserModel:
-    access = await role_serv.check_object_access(
+    has_access = await role_serv.check_object_access(
         user=current_user,
         orm_object=user_for_write,
         need_write=True,
     )
-    if not access:
+    if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden",
@@ -82,12 +82,12 @@ async def get_ad_write_access(
     current_user: UserModel = Depends(get_current_user),
     role_serv: RoleService = Depends(get_role_service),
 ) -> AdModel:
-    access = await role_serv.check_object_access(
+    has_access = await role_serv.check_object_access(
         user=current_user,
         orm_object=ad_for_write,
         need_write=True,
     )
-    if not access:
+    if not has_access:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Forbidden",
