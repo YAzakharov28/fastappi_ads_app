@@ -32,3 +32,8 @@ class UserRepository:
         self.session.add(new_user)
         return new_user
 
+    async def get_list(self) -> list[UserModel]:
+        stmt = select(UserModel)
+        users_list = (await self.session.scalars(stmt)).all()
+        return list(users_list)
+

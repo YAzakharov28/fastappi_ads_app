@@ -1,6 +1,10 @@
 from fastapi import APIRouter, Depends, status
 
-from src.dependencies.auth import get_user_from_query_param, get_user_write_access
+from src.dependencies.auth import (
+    get_current_user,
+    get_user_from_query_param,
+    get_user_write_access,
+)
 from src.dependencies.user import UserServ
 from src.models import User as UserModel
 from src.schemas.user import UserRegistrationRequest, UserResponse, UserUpdateRequest
@@ -9,6 +13,15 @@ router = APIRouter(
     prefix="/users",
     tags=["User"],
 )
+
+
+@router.get("/", response_model=list[UserModel])
+async def get_users_list(
+    user_serv: UserServ,
+    current_user: UserModel = Depends(get_current_user),
+):
+    users_list = await user_serv.get_users_list(current_user)
+    return users_list
 
 
 @router.post(

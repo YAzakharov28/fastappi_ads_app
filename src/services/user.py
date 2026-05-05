@@ -3,6 +3,7 @@ from typing import Literal
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.util import await_only
 
 from src.models import User as UserModel
 from src.repositories.user import UserRepository
@@ -57,3 +58,14 @@ class UserService:
     async def delete_user(self, user: UserModel) -> None:
         await self.session.delete(user)
         await self.session.commit()
+
+    async def get_users_list(self, current_user: UserModel):
+        has_access = await self.role_serv.check_object_access(
+            user=current_user,
+            orm_object=UserModel,
+            need_read=True,
+        )
+        if not has_access:
+            raise HTTPException(status_code=403, detail="Forbidden")
+
+        return await self.user_repo.get_list()
