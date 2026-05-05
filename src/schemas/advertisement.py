@@ -42,7 +42,6 @@ class AdUpdateRequest(BaseModel):
         description="Цена объявления",
     )
 
-
     @model_validator(mode="after")
     def fields_validator(self) -> Self:
         if all(field is None for field in self.__dict__.values()):
@@ -92,6 +91,10 @@ class AdFilters(BaseModel):
     user_id: int | None = Field(
         None,
         description="ID пользователя",
+    )
+    author: str | None = Field(
+        default=None,
+        description="Имя автора (username)",
     )
     sort_by: SortBy = Field(
         SortBy.CREATED_AT,

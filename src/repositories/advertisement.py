@@ -2,7 +2,7 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.schemas.advertisement import AdCreateRequest, AdFilters, SortOrder
-from src.models import Advertisement as AdModel
+from src.models import Advertisement as AdModel, User as UserModel
 
 
 class AdRepository:
@@ -38,6 +38,8 @@ class AdRepository:
             filters.append(AdModel.price <= filters_data.max_price)
         if filters_data.user_id is not None:
             filters.append(AdModel.user_id == filters_data.user_id)
+        if filters_data.author:
+            filters.append(UserModel.username.ilike(f"%{filters_data.author}%"))
 
         total_stmt = select(func.count()).select_from(AdModel).where(*filters)
         total = await self.session.scalar(total_stmt) or 0
